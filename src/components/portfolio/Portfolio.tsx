@@ -221,16 +221,26 @@ function Nav({ theme, toggle }: { theme: string; toggle: () => void }) {
 
 function Hero() {
   const typed = useTyping(TYPING);
+  const [offset, setOffset] = useState(0);
+  useEffect(() => {
+    const onScroll = () => setOffset(window.scrollY * 0.15);
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onScroll);
+  }, []);
   const go = (id: string) => document.getElementById(id)?.scrollIntoView({ behavior: "smooth" });
   return (
     <section id="home" className="relative pt-32 pb-20 overflow-hidden">
+      <div className="absolute inset-0 -z-10 grid-bg" />
       <div className="absolute inset-0 -z-10">
-        <div className="absolute top-20 -left-20 h-72 w-72 rounded-full bg-primary/30 blur-3xl" />
-        <div className="absolute bottom-0 right-0 h-96 w-96 rounded-full bg-accent/20 blur-3xl" />
+        <div className="absolute top-20 -left-20 h-72 w-72 rounded-full bg-primary/30 blur-3xl animate-pulse" />
+        <div className="absolute bottom-0 right-0 h-96 w-96 rounded-full bg-primary/15 blur-3xl" />
       </div>
       <div className="mx-auto max-w-7xl px-6 grid lg:grid-cols-[1.2fr_1fr] gap-12 items-center">
         <div className="animate-fade-in">
-          <Badge variant="outline" className="mb-6 border-primary/30 text-primary">Available for work</Badge>
+          <Badge variant="outline" className="mb-6 border-primary/40 text-primary pulse-glow">
+            <span className="mr-2 inline-block h-1.5 w-1.5 rounded-full bg-primary animate-pulse" />
+            Available for work
+          </Badge>
           <h1 className="text-5xl sm:text-6xl lg:text-7xl font-bold leading-[1.05]">
             Hi, I'm <span className="gradient-text">Ashutosh Palhare</span>
           </h1>
@@ -244,24 +254,27 @@ function Hero() {
             Passionate about creating innovative solutions in web development, mobile apps, cybersecurity, and graphic design.
           </p>
           <div className="mt-8 flex flex-wrap gap-3">
-            <Button size="lg" onClick={() => go("projects")} className="bg-gradient-to-r from-primary to-accent text-primary-foreground glow-shadow hover:opacity-90">
+            <Button size="lg" onClick={() => go("projects")} className="btn-glow bg-gradient-to-r from-primary to-accent text-primary-foreground glow-shadow">
               View Projects <ArrowRight className="ml-2 h-4 w-4" />
             </Button>
-            <Button size="lg" variant="outline" onClick={() => go("contact")}>
+            <Button size="lg" variant="outline" onClick={() => go("contact")} className="btn-glow border-primary/40 text-primary hover:bg-primary/10 hover:text-primary">
               Contact Me
             </Button>
           </div>
         </div>
         <div className="relative justify-self-center lg:justify-self-end">
-          <div className="absolute -inset-4 rounded-3xl bg-gradient-to-br from-primary to-accent opacity-30 blur-2xl" />
-          <div className="relative float">
+          <div className="absolute -inset-4 rounded-3xl bg-gradient-to-br from-primary to-accent opacity-40 blur-3xl animate-pulse" />
+          <div className="relative float" style={{ transform: `translateY(${-offset}px)` }}>
             <img
               src={heroPortrait}
               alt="Ashutosh Palhare portrait"
               width={420}
               height={420}
-              className="relative rounded-3xl border border-border w-72 sm:w-96 aspect-square object-cover glow-shadow"
+              className="relative rounded-3xl border border-primary/30 w-72 sm:w-96 aspect-square object-cover glow-shadow"
             />
+            <div className="absolute -bottom-3 -right-3 px-3 py-1.5 rounded-lg bg-background/80 backdrop-blur-md border border-primary/30 text-xs font-mono text-primary">
+              {"<dev />"}
+            </div>
           </div>
         </div>
       </div>
@@ -273,12 +286,14 @@ function Section({ id, eyebrow, title, children }: { id: string; eyebrow: string
   return (
     <section id={id} className="py-24">
       <div className="mx-auto max-w-7xl px-6">
-        <div className="mb-12 text-center">
-          <div className="text-sm uppercase tracking-[0.2em] text-primary font-medium">{eyebrow}</div>
-          <h2 className="mt-2 text-3xl sm:text-4xl lg:text-5xl font-bold">{title}</h2>
-          <div className="mx-auto mt-4 h-1 w-16 rounded-full bg-gradient-to-r from-primary to-accent" />
-        </div>
-        {children}
+        <Reveal>
+          <div className="mb-12 text-center">
+            <div className="text-sm uppercase tracking-[0.2em] text-primary font-mono">{eyebrow}</div>
+            <h2 className="mt-2 text-3xl sm:text-4xl lg:text-5xl font-bold">{title}</h2>
+            <div className="mx-auto mt-4 h-1 w-16 rounded-full bg-gradient-to-r from-primary to-accent" />
+          </div>
+        </Reveal>
+        <Reveal delay={120}>{children}</Reveal>
       </div>
     </section>
   );
@@ -288,7 +303,7 @@ function About() {
   return (
     <Section id="about" eyebrow="Who I am" title="About Me">
       <div className="grid lg:grid-cols-5 gap-10">
-        <Card className="lg:col-span-2 p-8">
+        <Card className="lg:col-span-2 p-8 card-glow">
           <p className="text-muted-foreground leading-relaxed">
             Hello! I'm <span className="text-foreground font-semibold">Ashutosh Palhare</span>, a versatile IT
             professional passionate about creating innovative solutions. With extensive experience in web
@@ -301,9 +316,9 @@ function About() {
         </Card>
         <div className="lg:col-span-3 grid sm:grid-cols-2 gap-4">
           {SERVICES.map(s => (
-            <Card key={s.title} className="p-6 group hover:border-primary/50 transition-colors">
+            <Card key={s.title} className="p-6 group card-glow">
               <div className="flex items-start gap-4">
-                <div className="grid h-12 w-12 shrink-0 place-items-center rounded-xl bg-gradient-to-br from-primary/20 to-accent/20 text-primary group-hover:scale-110 transition-transform">
+                <div className="grid h-12 w-12 shrink-0 place-items-center rounded-xl bg-gradient-to-br from-primary/20 to-accent/20 text-primary group-hover:scale-110 group-hover:rotate-6 transition-transform duration-300">
                   <s.icon className="h-6 w-6" />
                 </div>
                 <div className="min-w-0">
