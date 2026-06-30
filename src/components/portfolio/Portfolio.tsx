@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   Shield, Code2, Smartphone, Palette, Github, Linkedin, Mail, Phone,
   Moon, Sun, ArrowRight, ExternalLink, Briefcase, GraduationCap, Quote, Menu, X,
@@ -137,6 +137,37 @@ function useTyping(words: string[]) {
   return text;
 }
 
+function useReveal<T extends HTMLElement>() {
+  const ref = useRef<T | null>(null);
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    const io = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((e) => {
+          if (e.isIntersecting) {
+            el.classList.add("is-visible");
+            io.unobserve(el);
+          }
+        });
+      },
+      { threshold: 0.15 },
+    );
+    io.observe(el);
+    return () => io.disconnect();
+  }, []);
+  return ref;
+}
+
+function Reveal({ children, delay = 0, className = "" }: { children: React.ReactNode; delay?: number; className?: string }) {
+  const ref = useReveal<HTMLDivElement>();
+  return (
+    <div ref={ref} className={`reveal ${className}`} style={{ transitionDelay: `${delay}ms` }}>
+      {children}
+    </div>
+  );
+}
+
 function Nav({ theme, toggle }: { theme: string; toggle: () => void }) {
   const [open, setOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
@@ -150,16 +181,17 @@ function Nav({ theme, toggle }: { theme: string; toggle: () => void }) {
     document.getElementById(id)?.scrollIntoView({ behavior: "smooth" });
   };
   return (
-    <header className={`fixed top-0 inset-x-0 z-50 transition-all ${scrolled ? "bg-background/80 backdrop-blur-lg border-b border-border" : "bg-transparent"}`}>
+    <header className={`fixed top-0 inset-x-0 z-50 transition-all duration-500 ${scrolled ? "bg-background/70 backdrop-blur-xl border-b border-primary/20 shadow-[0_8px_30px_-15px_rgb(255_98_0_/_0.3)]" : "bg-transparent"}`}>
       <nav className="mx-auto max-w-7xl px-6 h-16 flex items-center justify-between">
         <button onClick={() => go("home")} className="flex items-center gap-2 group">
-          <span className="grid place-items-center h-10 w-10 rounded-xl bg-gradient-to-br from-primary to-accent text-primary-foreground font-bold glow-shadow group-hover:scale-105 transition-transform">AP</span>
+          <span className="grid place-items-center h-10 w-10 rounded-xl bg-gradient-to-br from-primary to-accent text-primary-foreground font-bold glow-shadow group-hover:scale-110 group-hover:rotate-3 transition-transform duration-300">AP</span>
           <span className="hidden sm:inline font-display font-semibold tracking-tight">Ashutosh Palhare</span>
         </button>
         <div className="hidden md:flex items-center gap-1">
           {NAV.map(n => (
-            <button key={n.id} onClick={() => go(n.id)} className="px-3 py-2 text-sm text-muted-foreground hover:text-foreground transition-colors">
+            <button key={n.id} onClick={() => go(n.id)} className="relative px-3 py-2 text-sm text-muted-foreground hover:text-primary transition-colors group">
               {n.label}
+              <span className="absolute left-3 right-3 -bottom-0.5 h-px bg-primary scale-x-0 group-hover:scale-x-100 transition-transform origin-left" />
             </button>
           ))}
         </div>
