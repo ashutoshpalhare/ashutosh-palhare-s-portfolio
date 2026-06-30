@@ -335,16 +335,33 @@ function About() {
 }
 
 function Skills() {
+  const ref = useRef<HTMLDivElement | null>(null);
+  const [visible, setVisible] = useState(false);
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    const io = new IntersectionObserver(
+      (entries) => entries.forEach((e) => { if (e.isIntersecting) { setVisible(true); io.disconnect(); } }),
+      { threshold: 0.3 },
+    );
+    io.observe(el);
+    return () => io.disconnect();
+  }, []);
   return (
     <Section id="skills" eyebrow="What I bring" title="Skills">
-      <div className="grid sm:grid-cols-2 gap-6 max-w-4xl mx-auto">
+      <div ref={ref} className="grid sm:grid-cols-2 gap-6 max-w-4xl mx-auto">
         {SKILLS.map(s => (
-          <Card key={s.name} className="p-6">
+          <Card key={s.name} className="p-6 card-glow">
             <div className="flex items-center justify-between">
               <span className="font-medium">{s.name}</span>
-              <span className="text-sm text-primary font-semibold">{s.value}%</span>
+              <span className="text-sm text-primary font-mono font-semibold">{s.value}%</span>
             </div>
-            <Progress value={s.value} className="mt-4" />
+            <div className="mt-4 h-2 w-full overflow-hidden rounded-full bg-primary/15">
+              <div
+                className="h-full rounded-full bg-gradient-to-r from-primary to-accent shadow-[0_0_12px_rgb(255_98_0_/_0.7)] transition-all duration-[1600ms] ease-out"
+                style={{ width: visible ? `${s.value}%` : "0%" }}
+              />
+            </div>
           </Card>
         ))}
       </div>
@@ -362,7 +379,7 @@ function Experience() {
           </h3>
           <div className="space-y-4">
             {EXPERIENCE.map(e => (
-              <Card key={e.role + e.company} className="p-6 relative border-l-4 border-l-primary">
+              <Card key={e.role + e.company} className="p-6 relative border-l-4 border-l-primary card-glow">
                 <div className="flex flex-wrap items-baseline justify-between gap-2">
                   <h4 className="font-semibold">{e.role}</h4>
                   <span className="text-xs text-muted-foreground">{e.period}</span>
@@ -379,7 +396,7 @@ function Experience() {
           </h3>
           <div className="space-y-4">
             {EDUCATION.map(e => (
-              <Card key={e.title} className="p-6 relative border-l-4 border-l-accent">
+              <Card key={e.title} className="p-6 relative border-l-4 border-l-accent card-glow">
                 <div className="flex flex-wrap items-baseline justify-between gap-2">
                   <h4 className="font-semibold">{e.title}</h4>
                   <span className="text-xs text-muted-foreground">{e.period}</span>
@@ -409,21 +426,21 @@ function Projects() {
       </div>
       <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
         {filtered.map(p => (
-          <Card key={p.title} className="group overflow-hidden p-0 hover:border-primary/50 transition-all hover:-translate-y-1">
+          <Card key={p.title} className="group overflow-hidden p-0 card-glow">
             <div className={`relative aspect-[4/3] bg-gradient-to-br ${p.color} overflow-hidden`}>
-              <div className="absolute inset-0 grid place-items-center text-white/95 font-display text-4xl font-bold tracking-tight">
+              <div className="absolute inset-0 grid place-items-center text-white/95 font-display text-4xl font-bold tracking-tight group-hover:scale-110 transition-transform duration-500">
                 {p.title}
               </div>
-              <div className="absolute inset-0 bg-black/0 group-hover:bg-black/40 transition-colors grid place-items-center opacity-0 group-hover:opacity-100">
-                <Button size="sm" variant="secondary" className="gap-2">
+              <div className="absolute inset-0 bg-black/0 group-hover:bg-black/60 transition-colors grid place-items-center opacity-0 group-hover:opacity-100">
+                <Button size="sm" className="gap-2 btn-glow bg-primary text-primary-foreground">
                   View Project <ExternalLink className="h-3.5 w-3.5" />
                 </Button>
               </div>
             </div>
             <div className="p-5">
               <div className="flex items-center justify-between gap-2">
-                <h3 className="font-semibold truncate">{p.title}</h3>
-                <Badge variant="secondary" className="text-xs shrink-0">{p.category}</Badge>
+                <h3 className="font-semibold truncate group-hover:text-primary transition-colors">{p.title}</h3>
+                <Badge variant="outline" className="text-xs shrink-0 border-primary/40 text-primary">{p.category}</Badge>
               </div>
               <p className="mt-2 text-sm text-muted-foreground">{p.desc}</p>
             </div>
@@ -439,7 +456,7 @@ function Testimonials() {
     <Section id="testimonials" eyebrow="Kind words" title="Testimonials">
       <div className="grid sm:grid-cols-2 gap-6 max-w-5xl mx-auto">
         {TESTIMONIALS.map(t => (
-          <Card key={t.name} className="p-6 relative">
+          <Card key={t.name} className="p-6 relative card-glow">
             <Quote className="absolute top-4 right-4 h-8 w-8 text-primary/20" />
             <p className="text-muted-foreground leading-relaxed">"{t.text}"</p>
             <div className="mt-6 flex items-center gap-3">
@@ -472,34 +489,34 @@ function Contact() {
   return (
     <Section id="contact" eyebrow="Let's talk" title="Get In Touch">
       <div className="grid lg:grid-cols-2 gap-8 max-w-5xl mx-auto">
-        <Card className="p-8">
+        <Card className="p-8 card-glow">
           <h3 className="text-xl font-semibold">Send a message</h3>
           <p className="text-sm text-muted-foreground mt-1">I'll reply within 24–48 hours.</p>
           <form onSubmit={onSubmit} className="mt-6 space-y-4">
             <Input required name="name" placeholder="Your name" />
             <Input required type="email" name="email" placeholder="Your email" />
             <Textarea required name="message" placeholder="Your message" rows={5} />
-            <Button disabled={submitting} className="w-full bg-gradient-to-r from-primary to-accent text-primary-foreground">
+            <Button disabled={submitting} className="w-full btn-glow bg-gradient-to-r from-primary to-accent text-primary-foreground">
               {submitting ? "Sending..." : "Send Message"}
             </Button>
           </form>
         </Card>
         <div className="space-y-4">
-          <Card className="p-6 flex items-center gap-4">
+          <Card className="p-6 flex items-center gap-4 card-glow">
             <div className="grid h-12 w-12 shrink-0 place-items-center rounded-xl bg-primary/15 text-primary"><Mail className="h-5 w-5" /></div>
             <div className="min-w-0">
               <div className="text-xs uppercase tracking-wider text-muted-foreground">Email</div>
               <div className="font-medium truncate">ashutosh.palhare@email.com</div>
             </div>
           </Card>
-          <Card className="p-6 flex items-center gap-4">
-            <div className="grid h-12 w-12 shrink-0 place-items-center rounded-xl bg-accent/15 text-accent"><Phone className="h-5 w-5" /></div>
+          <Card className="p-6 flex items-center gap-4 card-glow">
+            <div className="grid h-12 w-12 shrink-0 place-items-center rounded-xl bg-primary/15 text-primary"><Phone className="h-5 w-5" /></div>
             <div className="min-w-0">
               <div className="text-xs uppercase tracking-wider text-muted-foreground">Phone</div>
               <div className="font-medium">+91 00000 00000</div>
             </div>
           </Card>
-          <Card className="p-6">
+          <Card className="p-6 card-glow">
             <div className="text-xs uppercase tracking-wider text-muted-foreground mb-3">Find me online</div>
             <div className="flex gap-3">
               {[
@@ -508,7 +525,7 @@ function Contact() {
                 { icon: Mail, href: "#", label: "Email" },
               ].map(s => (
                 <a key={s.label} href={s.href} aria-label={s.label}
-                  className="grid h-11 w-11 place-items-center rounded-xl border border-border hover:border-primary hover:text-primary transition-colors">
+                  className="grid h-11 w-11 place-items-center rounded-xl border border-border hover:border-primary hover:text-primary hover:scale-110 hover:shadow-[0_0_20px_rgb(255_98_0_/_0.5)] transition-all duration-300">
                   <s.icon className="h-5 w-5" />
                 </a>
               ))}
