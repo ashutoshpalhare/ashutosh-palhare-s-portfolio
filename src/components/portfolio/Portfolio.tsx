@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   Shield, Code2, Smartphone, Palette, Github, Linkedin, Mail, Phone,
   Moon, Sun, ArrowRight, ExternalLink, Briefcase, GraduationCap, Quote, Menu, X,
@@ -7,7 +7,6 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import { Toaster } from "@/components/ui/sonner";
@@ -137,6 +136,37 @@ function useTyping(words: string[]) {
   return text;
 }
 
+function useReveal<T extends HTMLElement>() {
+  const ref = useRef<T | null>(null);
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    const io = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((e) => {
+          if (e.isIntersecting) {
+            el.classList.add("is-visible");
+            io.unobserve(el);
+          }
+        });
+      },
+      { threshold: 0.15 },
+    );
+    io.observe(el);
+    return () => io.disconnect();
+  }, []);
+  return ref;
+}
+
+function Reveal({ children, delay = 0, className = "" }: { children: React.ReactNode; delay?: number; className?: string }) {
+  const ref = useReveal<HTMLDivElement>();
+  return (
+    <div ref={ref} className={`reveal ${className}`} style={{ transitionDelay: `${delay}ms` }}>
+      {children}
+    </div>
+  );
+}
+
 function Nav({ theme, toggle }: { theme: string; toggle: () => void }) {
   const [open, setOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
@@ -150,16 +180,17 @@ function Nav({ theme, toggle }: { theme: string; toggle: () => void }) {
     document.getElementById(id)?.scrollIntoView({ behavior: "smooth" });
   };
   return (
-    <header className={`fixed top-0 inset-x-0 z-50 transition-all ${scrolled ? "bg-background/80 backdrop-blur-lg border-b border-border" : "bg-transparent"}`}>
+    <header className={`fixed top-0 inset-x-0 z-50 transition-all duration-500 ${scrolled ? "bg-background/70 backdrop-blur-xl border-b border-primary/20 shadow-[0_8px_30px_-15px_rgb(255_98_0_/_0.3)]" : "bg-transparent"}`}>
       <nav className="mx-auto max-w-7xl px-6 h-16 flex items-center justify-between">
         <button onClick={() => go("home")} className="flex items-center gap-2 group">
-          <span className="grid place-items-center h-10 w-10 rounded-xl bg-gradient-to-br from-primary to-accent text-primary-foreground font-bold glow-shadow group-hover:scale-105 transition-transform">AP</span>
+          <span className="grid place-items-center h-10 w-10 rounded-xl bg-gradient-to-br from-primary to-accent text-primary-foreground font-bold glow-shadow group-hover:scale-110 group-hover:rotate-3 transition-transform duration-300">AP</span>
           <span className="hidden sm:inline font-display font-semibold tracking-tight">Ashutosh Palhare</span>
         </button>
         <div className="hidden md:flex items-center gap-1">
           {NAV.map(n => (
-            <button key={n.id} onClick={() => go(n.id)} className="px-3 py-2 text-sm text-muted-foreground hover:text-foreground transition-colors">
+            <button key={n.id} onClick={() => go(n.id)} className="relative px-3 py-2 text-sm text-muted-foreground hover:text-primary transition-colors group">
               {n.label}
+              <span className="absolute left-3 right-3 -bottom-0.5 h-px bg-primary scale-x-0 group-hover:scale-x-100 transition-transform origin-left" />
             </button>
           ))}
         </div>
@@ -189,16 +220,26 @@ function Nav({ theme, toggle }: { theme: string; toggle: () => void }) {
 
 function Hero() {
   const typed = useTyping(TYPING);
+  const [offset, setOffset] = useState(0);
+  useEffect(() => {
+    const onScroll = () => setOffset(window.scrollY * 0.15);
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onScroll);
+  }, []);
   const go = (id: string) => document.getElementById(id)?.scrollIntoView({ behavior: "smooth" });
   return (
     <section id="home" className="relative pt-32 pb-20 overflow-hidden">
+      <div className="absolute inset-0 -z-10 grid-bg" />
       <div className="absolute inset-0 -z-10">
-        <div className="absolute top-20 -left-20 h-72 w-72 rounded-full bg-primary/30 blur-3xl" />
-        <div className="absolute bottom-0 right-0 h-96 w-96 rounded-full bg-accent/20 blur-3xl" />
+        <div className="absolute top-20 -left-20 h-72 w-72 rounded-full bg-primary/30 blur-3xl animate-pulse" />
+        <div className="absolute bottom-0 right-0 h-96 w-96 rounded-full bg-primary/15 blur-3xl" />
       </div>
       <div className="mx-auto max-w-7xl px-6 grid lg:grid-cols-[1.2fr_1fr] gap-12 items-center">
         <div className="animate-fade-in">
-          <Badge variant="outline" className="mb-6 border-primary/30 text-primary">Available for work</Badge>
+          <Badge variant="outline" className="mb-6 border-primary/40 text-primary pulse-glow">
+            <span className="mr-2 inline-block h-1.5 w-1.5 rounded-full bg-primary animate-pulse" />
+            Available for work
+          </Badge>
           <h1 className="text-5xl sm:text-6xl lg:text-7xl font-bold leading-[1.05]">
             Hi, I'm <span className="gradient-text">Ashutosh Palhare</span>
           </h1>
@@ -212,24 +253,27 @@ function Hero() {
             Passionate about creating innovative solutions in web development, mobile apps, cybersecurity, and graphic design.
           </p>
           <div className="mt-8 flex flex-wrap gap-3">
-            <Button size="lg" onClick={() => go("projects")} className="bg-gradient-to-r from-primary to-accent text-primary-foreground glow-shadow hover:opacity-90">
+            <Button size="lg" onClick={() => go("projects")} className="btn-glow bg-gradient-to-r from-primary to-accent text-primary-foreground glow-shadow">
               View Projects <ArrowRight className="ml-2 h-4 w-4" />
             </Button>
-            <Button size="lg" variant="outline" onClick={() => go("contact")}>
+            <Button size="lg" variant="outline" onClick={() => go("contact")} className="btn-glow border-primary/40 text-primary hover:bg-primary/10 hover:text-primary">
               Contact Me
             </Button>
           </div>
         </div>
         <div className="relative justify-self-center lg:justify-self-end">
-          <div className="absolute -inset-4 rounded-3xl bg-gradient-to-br from-primary to-accent opacity-30 blur-2xl" />
-          <div className="relative float">
+          <div className="absolute -inset-4 rounded-3xl bg-gradient-to-br from-primary to-accent opacity-40 blur-3xl animate-pulse" />
+          <div className="relative float" style={{ transform: `translateY(${-offset}px)` }}>
             <img
               src={heroPortrait}
               alt="Ashutosh Palhare portrait"
               width={420}
               height={420}
-              className="relative rounded-3xl border border-border w-72 sm:w-96 aspect-square object-cover glow-shadow"
+              className="relative rounded-3xl border border-primary/30 w-72 sm:w-96 aspect-square object-cover glow-shadow"
             />
+            <div className="absolute -bottom-3 -right-3 px-3 py-1.5 rounded-lg bg-background/80 backdrop-blur-md border border-primary/30 text-xs font-mono text-primary">
+              {"<dev />"}
+            </div>
           </div>
         </div>
       </div>
@@ -241,12 +285,14 @@ function Section({ id, eyebrow, title, children }: { id: string; eyebrow: string
   return (
     <section id={id} className="py-24">
       <div className="mx-auto max-w-7xl px-6">
-        <div className="mb-12 text-center">
-          <div className="text-sm uppercase tracking-[0.2em] text-primary font-medium">{eyebrow}</div>
-          <h2 className="mt-2 text-3xl sm:text-4xl lg:text-5xl font-bold">{title}</h2>
-          <div className="mx-auto mt-4 h-1 w-16 rounded-full bg-gradient-to-r from-primary to-accent" />
-        </div>
-        {children}
+        <Reveal>
+          <div className="mb-12 text-center">
+            <div className="text-sm uppercase tracking-[0.2em] text-primary font-mono">{eyebrow}</div>
+            <h2 className="mt-2 text-3xl sm:text-4xl lg:text-5xl font-bold">{title}</h2>
+            <div className="mx-auto mt-4 h-1 w-16 rounded-full bg-gradient-to-r from-primary to-accent" />
+          </div>
+        </Reveal>
+        <Reveal delay={120}>{children}</Reveal>
       </div>
     </section>
   );
@@ -256,7 +302,7 @@ function About() {
   return (
     <Section id="about" eyebrow="Who I am" title="About Me">
       <div className="grid lg:grid-cols-5 gap-10">
-        <Card className="lg:col-span-2 p-8">
+        <Card className="lg:col-span-2 p-8 card-glow">
           <p className="text-muted-foreground leading-relaxed">
             Hello! I'm <span className="text-foreground font-semibold">Ashutosh Palhare</span>, a versatile IT
             professional passionate about creating innovative solutions. With extensive experience in web
@@ -269,9 +315,9 @@ function About() {
         </Card>
         <div className="lg:col-span-3 grid sm:grid-cols-2 gap-4">
           {SERVICES.map(s => (
-            <Card key={s.title} className="p-6 group hover:border-primary/50 transition-colors">
+            <Card key={s.title} className="p-6 group card-glow">
               <div className="flex items-start gap-4">
-                <div className="grid h-12 w-12 shrink-0 place-items-center rounded-xl bg-gradient-to-br from-primary/20 to-accent/20 text-primary group-hover:scale-110 transition-transform">
+                <div className="grid h-12 w-12 shrink-0 place-items-center rounded-xl bg-gradient-to-br from-primary/20 to-accent/20 text-primary group-hover:scale-110 group-hover:rotate-6 transition-transform duration-300">
                   <s.icon className="h-6 w-6" />
                 </div>
                 <div className="min-w-0">
@@ -288,16 +334,33 @@ function About() {
 }
 
 function Skills() {
+  const ref = useRef<HTMLDivElement | null>(null);
+  const [visible, setVisible] = useState(false);
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    const io = new IntersectionObserver(
+      (entries) => entries.forEach((e) => { if (e.isIntersecting) { setVisible(true); io.disconnect(); } }),
+      { threshold: 0.3 },
+    );
+    io.observe(el);
+    return () => io.disconnect();
+  }, []);
   return (
     <Section id="skills" eyebrow="What I bring" title="Skills">
-      <div className="grid sm:grid-cols-2 gap-6 max-w-4xl mx-auto">
+      <div ref={ref} className="grid sm:grid-cols-2 gap-6 max-w-4xl mx-auto">
         {SKILLS.map(s => (
-          <Card key={s.name} className="p-6">
+          <Card key={s.name} className="p-6 card-glow">
             <div className="flex items-center justify-between">
               <span className="font-medium">{s.name}</span>
-              <span className="text-sm text-primary font-semibold">{s.value}%</span>
+              <span className="text-sm text-primary font-mono font-semibold">{s.value}%</span>
             </div>
-            <Progress value={s.value} className="mt-4" />
+            <div className="mt-4 h-2 w-full overflow-hidden rounded-full bg-primary/15">
+              <div
+                className="h-full rounded-full bg-gradient-to-r from-primary to-accent shadow-[0_0_12px_rgb(255_98_0_/_0.7)] transition-all duration-[1600ms] ease-out"
+                style={{ width: visible ? `${s.value}%` : "0%" }}
+              />
+            </div>
           </Card>
         ))}
       </div>
@@ -315,7 +378,7 @@ function Experience() {
           </h3>
           <div className="space-y-4">
             {EXPERIENCE.map(e => (
-              <Card key={e.role + e.company} className="p-6 relative border-l-4 border-l-primary">
+              <Card key={e.role + e.company} className="p-6 relative border-l-4 border-l-primary card-glow">
                 <div className="flex flex-wrap items-baseline justify-between gap-2">
                   <h4 className="font-semibold">{e.role}</h4>
                   <span className="text-xs text-muted-foreground">{e.period}</span>
@@ -332,7 +395,7 @@ function Experience() {
           </h3>
           <div className="space-y-4">
             {EDUCATION.map(e => (
-              <Card key={e.title} className="p-6 relative border-l-4 border-l-accent">
+              <Card key={e.title} className="p-6 relative border-l-4 border-l-accent card-glow">
                 <div className="flex flex-wrap items-baseline justify-between gap-2">
                   <h4 className="font-semibold">{e.title}</h4>
                   <span className="text-xs text-muted-foreground">{e.period}</span>
@@ -362,21 +425,21 @@ function Projects() {
       </div>
       <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
         {filtered.map(p => (
-          <Card key={p.title} className="group overflow-hidden p-0 hover:border-primary/50 transition-all hover:-translate-y-1">
+          <Card key={p.title} className="group overflow-hidden p-0 card-glow">
             <div className={`relative aspect-[4/3] bg-gradient-to-br ${p.color} overflow-hidden`}>
-              <div className="absolute inset-0 grid place-items-center text-white/95 font-display text-4xl font-bold tracking-tight">
+              <div className="absolute inset-0 grid place-items-center text-white/95 font-display text-4xl font-bold tracking-tight group-hover:scale-110 transition-transform duration-500">
                 {p.title}
               </div>
-              <div className="absolute inset-0 bg-black/0 group-hover:bg-black/40 transition-colors grid place-items-center opacity-0 group-hover:opacity-100">
-                <Button size="sm" variant="secondary" className="gap-2">
+              <div className="absolute inset-0 bg-black/0 group-hover:bg-black/60 transition-colors grid place-items-center opacity-0 group-hover:opacity-100">
+                <Button size="sm" className="gap-2 btn-glow bg-primary text-primary-foreground">
                   View Project <ExternalLink className="h-3.5 w-3.5" />
                 </Button>
               </div>
             </div>
             <div className="p-5">
               <div className="flex items-center justify-between gap-2">
-                <h3 className="font-semibold truncate">{p.title}</h3>
-                <Badge variant="secondary" className="text-xs shrink-0">{p.category}</Badge>
+                <h3 className="font-semibold truncate group-hover:text-primary transition-colors">{p.title}</h3>
+                <Badge variant="outline" className="text-xs shrink-0 border-primary/40 text-primary">{p.category}</Badge>
               </div>
               <p className="mt-2 text-sm text-muted-foreground">{p.desc}</p>
             </div>
@@ -392,7 +455,7 @@ function Testimonials() {
     <Section id="testimonials" eyebrow="Kind words" title="Testimonials">
       <div className="grid sm:grid-cols-2 gap-6 max-w-5xl mx-auto">
         {TESTIMONIALS.map(t => (
-          <Card key={t.name} className="p-6 relative">
+          <Card key={t.name} className="p-6 relative card-glow">
             <Quote className="absolute top-4 right-4 h-8 w-8 text-primary/20" />
             <p className="text-muted-foreground leading-relaxed">"{t.text}"</p>
             <div className="mt-6 flex items-center gap-3">
@@ -425,34 +488,34 @@ function Contact() {
   return (
     <Section id="contact" eyebrow="Let's talk" title="Get In Touch">
       <div className="grid lg:grid-cols-2 gap-8 max-w-5xl mx-auto">
-        <Card className="p-8">
+        <Card className="p-8 card-glow">
           <h3 className="text-xl font-semibold">Send a message</h3>
           <p className="text-sm text-muted-foreground mt-1">I'll reply within 24–48 hours.</p>
           <form onSubmit={onSubmit} className="mt-6 space-y-4">
             <Input required name="name" placeholder="Your name" />
             <Input required type="email" name="email" placeholder="Your email" />
             <Textarea required name="message" placeholder="Your message" rows={5} />
-            <Button disabled={submitting} className="w-full bg-gradient-to-r from-primary to-accent text-primary-foreground">
+            <Button disabled={submitting} className="w-full btn-glow bg-gradient-to-r from-primary to-accent text-primary-foreground">
               {submitting ? "Sending..." : "Send Message"}
             </Button>
           </form>
         </Card>
         <div className="space-y-4">
-          <Card className="p-6 flex items-center gap-4">
+          <Card className="p-6 flex items-center gap-4 card-glow">
             <div className="grid h-12 w-12 shrink-0 place-items-center rounded-xl bg-primary/15 text-primary"><Mail className="h-5 w-5" /></div>
             <div className="min-w-0">
               <div className="text-xs uppercase tracking-wider text-muted-foreground">Email</div>
               <div className="font-medium truncate">ashutosh.palhare@email.com</div>
             </div>
           </Card>
-          <Card className="p-6 flex items-center gap-4">
-            <div className="grid h-12 w-12 shrink-0 place-items-center rounded-xl bg-accent/15 text-accent"><Phone className="h-5 w-5" /></div>
+          <Card className="p-6 flex items-center gap-4 card-glow">
+            <div className="grid h-12 w-12 shrink-0 place-items-center rounded-xl bg-primary/15 text-primary"><Phone className="h-5 w-5" /></div>
             <div className="min-w-0">
               <div className="text-xs uppercase tracking-wider text-muted-foreground">Phone</div>
               <div className="font-medium">+91 00000 00000</div>
             </div>
           </Card>
-          <Card className="p-6">
+          <Card className="p-6 card-glow">
             <div className="text-xs uppercase tracking-wider text-muted-foreground mb-3">Find me online</div>
             <div className="flex gap-3">
               {[
@@ -461,7 +524,7 @@ function Contact() {
                 { icon: Mail, href: "#", label: "Email" },
               ].map(s => (
                 <a key={s.label} href={s.href} aria-label={s.label}
-                  className="grid h-11 w-11 place-items-center rounded-xl border border-border hover:border-primary hover:text-primary transition-colors">
+                  className="grid h-11 w-11 place-items-center rounded-xl border border-border hover:border-primary hover:text-primary hover:scale-110 hover:shadow-[0_0_20px_rgb(255_98_0_/_0.5)] transition-all duration-300">
                   <s.icon className="h-5 w-5" />
                 </a>
               ))}
